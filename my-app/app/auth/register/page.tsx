@@ -13,6 +13,7 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState(false)
     const router = useRouter()
 
+    // this function handles the form submission
     async function handleSubmit(formData: FormData) {
         setLoading(true)
         setError('')
