@@ -1,0 +1,12 @@
+﻿actions/projects.ts(12,18): error TS2322: Type 'unknown' is not assignable to type 'number | IntFilter<"projects"> | undefined'.
+actions/projects.ts(31,17): error TS2322: Type 'unknown' is not assignable to type 'number | undefined'.
+actions/tasks.ts(59,17): error TS2353: Object literal may only specify known properties, and 'ProjectID' does not exist in type 'Without<tasksCreateInput, tasksUncheckedCreateInput> & tasksUncheckedCreateInput'.
+app/dashboard/layout.tsx(72,30): error TS18046: 'session.name' is of type 'unknown'.
+app/dashboard/layout.tsx(75,73): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+app/dashboard/layout.tsx(76,76): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+app/dashboard/page.tsx(17,27): error TS2322: Type '(formData: FormData) => Promise<{ error: string; success?: undefined; project?: undefined; } | { success: boolean; project: { CreatedAt: Date | null; ProjectID: number; ProjectName: string; Description: string | null; CreatedBy: number; }; error?: undefined; }>' is not assignable to type 'string | ((formData: FormData) => void | Promise<void>) | undefined'.
+  Type '(formData: FormData) => Promise<{ error: string; success?: undefined; project?: undefined; } | { success: boolean; project: { CreatedAt: Date | null; ProjectID: number; ProjectName: string; Description: string | null; CreatedBy: number; }; error?: undefined; }>' is not assignable to type '(formData: FormData) => void | Promise<void>'.
+    Type 'Promise<{ error: string; success?: undefined; project?: undefined; } | { success: boolean; project: { CreatedAt: Date | null; ProjectID: number; ProjectName: string; Description: string | null; CreatedBy: number; }; error?: undefined; }>' is not assignable to type 'void | Promise<void>'.
+      Type 'Promise<{ error: string; success?: undefined; project?: undefined; } | { success: boolean; project: { CreatedAt: Date | null; ProjectID: number; ProjectName: string; Description: string | null; CreatedBy: number; }; error?: undefined; }>' is not assignable to type 'Promise<void>'.
+        Type '{ error: string; success?: undefined; project?: undefined; } | { success: boolean; project: { CreatedAt: Date | null; ProjectID: number; ProjectName: string; Description: string | null; CreatedBy: number; }; error?: undefined; }' is not assignable to type 'void'.
+          Type '{ error: string; success?: undefined; project?: undefined; }' is not assignable to type 'void'.
