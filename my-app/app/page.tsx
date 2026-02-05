@@ -3,8 +3,8 @@ import { CheckCircle2, Circle, MoreHorizontal, Calendar, Plus, Search, Bell } fr
 
 export default function Home() {
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center p-6 sm:p-12">
-      <div className="max-w-5xl w-full grid lg:grid-cols-2 gap-12 items-center">
+    <div className="flex flex-col min-h-[calc(100vh-4rem)] p-6 sm:p-12 overflow-x-hidden">
+      <div className="max-w-5xl w-full grid lg:grid-cols-2 gap-12 items-center my-auto mx-auto">
 
         {/* Left Column: Text Content */}
         <div className="text-left space-y-8">

@@ -13,6 +13,7 @@ import {
     DragOverEvent,
     DragEndEvent,
 } from '@dnd-kit/core'
+import { toast } from 'sonner'
 import {
     arrayMove,
     SortableContext,
@@ -25,6 +26,8 @@ import { createTask, updateTaskStatus, updateTaskDetails, deleteTask } from '@/a
 import { Plus, MoreHorizontal, Calendar, Flag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import TaskModal from './TaskModal'
+import DeleteConfirmModal from './DeleteConfirmModal'
+import { useRouter } from 'next/navigation'
 
 type Task = {
     TaskID: number
@@ -45,8 +48,11 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
     const [tasks, setTasks] = useState<Task[]>(initialTasks)
     const [activeId, setActiveId] = useState<number | null>(null)
     const [editingTask, setEditingTask] = useState<Task | null>(null)
+    const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
+    const [loading, setLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
     const dndContextId = useId()
+    const router = useRouter()
 
     useEffect(() => {
         setMounted(true)
@@ -117,8 +123,13 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
                             formData.append('projectId', projectId.toString())
                             formData.append('title', title)
                             formData.append('status', col.id)
-                            await createTask(formData)
-                            window.location.reload()
+                            try {
+                                await createTask(formData)
+                                toast.success('Task created')
+                                window.location.reload()
+                            } catch (e) {
+                                toast.error('Failed to create task')
+                            }
                         }}
                     />
                 ))}
@@ -132,15 +143,42 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
                     task={editingTask}
                     onClose={() => setEditingTask(null)}
                     onUpdate={async (id, data) => {
-                        await updateTaskDetails(id, data)
-                        window.location.reload()
+                        try {
+                            await updateTaskDetails(id, data)
+                            toast.success('Task updated')
+                            window.location.reload()
+                        } catch (e) {
+                            toast.error('Failed to update task')
+                        }
                     }}
                     onDelete={async (id) => {
-                        await deleteTask(id)
-                        window.location.reload()
+                        setDeletingTaskId(id)
                     }}
                 />
             )}
+
+            <DeleteConfirmModal
+                isOpen={!!deletingTaskId}
+                onClose={() => setDeletingTaskId(null)}
+                onConfirm={async () => {
+                    if (!deletingTaskId) return
+                    setLoading(true)
+                    try {
+                        await deleteTask(deletingTaskId)
+                        setTasks(prev => prev.filter(t => t.TaskID !== deletingTaskId))
+                        toast.success('Task deleted successfully')
+                        setDeletingTaskId(null)
+                        setEditingTask(null)
+                    } catch (e) {
+                        toast.error('Failed to delete task')
+                    } finally {
+                        setLoading(false)
+                    }
+                }}
+                loading={loading}
+                title="Delete Task"
+                message="Are you sure you want to delete this task? This action cannot be undone."
+            />
         </DndContext>
     )
 }
@@ -150,12 +188,12 @@ function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any
     const [newTitle, setNewTitle] = useState('')
 
     return (
-        <div className="flex h-full w-80 flex-col rounded-xl bg-slate-900/50 border border-white/5 backdrop-blur-md">
-            <div className="flex items-center justify-between p-4 border-b border-white/5">
+        <div className="flex h-full w-80 flex-col rounded-xl bg-card border border-theme shadow-sm">
+            <div className="flex items-center justify-between p-4 border-b border-theme/50">
                 <div className="flex items-center gap-2">
                     <div className={cn("h-2 w-2 rounded-full", col.color)} />
-                    <h3 className="font-semibold text-slate-200">{col.title}</h3>
-                    <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-slate-400 font-mono">
+                    <h3 className="font-semibold text-foreground/80">{col.title}</h3>
+                    <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground font-mono">
                         {tasks.length}
                     </span>
                 </div>
@@ -169,10 +207,10 @@ function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any
                 </SortableContext>
 
                 {isCreating ? (
-                    <div className="p-3 bg-white/5 rounded-lg border border-purple-500/50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-3 bg-muted/50 rounded-lg border border-primary/50 animate-in fade-in zoom-in-95 duration-200">
                         <input
                             autoFocus
-                            className="w-full bg-transparent text-sm text-white placeholder-white/30 outline-none mb-2"
+                            className="w-full bg-transparent text-sm text-foreground placeholder-muted-foreground/50 outline-none mb-2"
                             placeholder="Task title..."
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
@@ -191,9 +229,9 @@ function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any
                             }}
                         />
                         <div className="flex justify-end gap-2 text-xs">
-                            <button className="text-slate-400 hover:text-white" onClick={() => setIsCreating(false)}>Cancel</button>
+                            <button className="text-muted-foreground hover:text-foreground" onClick={() => setIsCreating(false)}>Cancel</button>
                             <button
-                                className="text-purple-400 hover:text-purple-300 font-medium"
+                                className="text-primary hover:text-primary-hover font-medium"
                                 onClick={() => {
                                     if (newTitle.trim()) {
                                         onTaskCreate(newTitle)
@@ -206,7 +244,7 @@ function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any
                 ) : (
                     <button
                         onClick={() => setIsCreating(true)}
-                        className="w-full py-2 flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-slate-300 hover:bg-white/5 rounded-lg border border-dashed border-white/5 hover:border-white/10 transition-all"
+                        className="w-full py-2 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg border border-dashed border-theme transition-all"
                     >
                         <Plus className="h-4 w-4" />
                         Add Task
@@ -237,7 +275,7 @@ function SortableTask({ task, onClick }: { task: Task, onClick?: () => void }) {
             <div
                 ref={setNodeRef}
                 style={style}
-                className="h-[100px] rounded-lg bg-slate-800/50 border border-purple-500/50 opacity-50"
+                className="h-[100px] rounded-lg bg-muted border border-primary/50 opacity-50"
             />
         )
     }
@@ -251,29 +289,28 @@ function SortableTask({ task, onClick }: { task: Task, onClick?: () => void }) {
 
 function TaskCard({ task }: { task: Task }) {
     return (
-        <div className="group relative bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all hover:shadow-lg hover:shadow-purple-500/5">
+        <div className="group relative bg-card hover:bg-muted/30 border border-theme hover:border-primary/30 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all hover:shadow-md">
             <div className="flex justify-between items-start mb-2">
                 <span className={cn(
                     "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider",
-                    task.Priority === 'High' ? "bg-red-500/20 text-red-300" :
-                        task.Priority === 'Medium' ? "bg-yellow-500/20 text-yellow-300" :
-                            "bg-blue-500/20 text-blue-300"
+                    task.Priority === 'High' ? "bg-red-500/10 text-red-500 dark:text-red-400" :
+                        task.Priority === 'Medium' ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" :
+                            "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                 )}>
                     {task.Priority || 'Low'}
                 </span>
-                <button className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-white transition-opacity">
+                <button className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-primary transition-opacity">
                     <MoreHorizontal className="h-3 w-3" />
                 </button>
             </div>
-            <h4 className="text-sm font-medium text-slate-200 mb-1 leading-tight line-clamp-2">{task.Title}</h4>
-            <div className="flex items-center gap-3 mt-3 text-xs text-slate-500">
+            <h4 className="text-sm font-semibold text-foreground mb-1 leading-tight line-clamp-2">{task.Title}</h4>
+            <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
                 {task.DueDate && (
                     <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>{new Date(task.DueDate).toLocaleDateString()}</span>
                     </div>
                 )}
-                {/* Visual indicator for comments if I had that data in list view, but I don't yet. */}
             </div>
         </div>
     )

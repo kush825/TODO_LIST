@@ -36,14 +36,14 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
     }
 
     return (
-        <div className="relative overflow-hidden rounded-2xl bg-slate-900 border border-white/10 p-6 sm:p-10 mb-8">
-            <div className="absolute top-0 right-0 p-6 opacity-20">
-                <User className="w-64 h-64 text-purple-500 transform rotate-12 translate-x-16 -translate-y-16" />
+        <div className="relative overflow-hidden rounded-2xl bg-card border border-theme p-6 sm:p-10 mb-8 shadow-sm">
+            <div className="absolute top-0 right-0 p-6 opacity-5 dark:opacity-20 pointer-events-none">
+                <User className="w-64 h-64 text-primary transform rotate-12 translate-x-16 -translate-y-16" />
             </div>
 
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 <div className="relative group">
-                    <div className="h-24 w-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-2xl ring-4 ring-slate-900 overflow-hidden">
+                    <div className="h-24 w-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-xl ring-4 ring-card overflow-hidden">
                         {user.ProfileImage ? (
                             <img src={user.ProfileImage} alt={user.UserName} className="w-full h-full object-cover" />
                         ) : (
@@ -74,10 +74,10 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
                 </div>
 
                 <div className="flex-1">
-                    <h1 className="text-3xl font-bold text-white mb-2">{user.UserName}</h1>
-                    <div className="flex items-center gap-2 text-slate-400 mb-4">
+                    <h1 className="text-3xl font-bold text-foreground mb-2">{user.UserName}</h1>
+                    <div className="flex items-center gap-2 text-muted-foreground mb-4">
                         <Mail className="w-4 h-4" />
-                        <span>{user.Email}</span>
+                        <span className="font-medium">{user.Email}</span>
                     </div>
                 </div>
 

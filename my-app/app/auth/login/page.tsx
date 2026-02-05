@@ -5,31 +5,31 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function LoginPage() {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const router = useRouter()
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
         setError('')
-
-        // We wrap the server action to catch redirects or errors differently if needed, 
-        // but here we rely on the action returning an error object or modifying state.
-        // NOTE: In Next.js server actions with redirect, the function actually throws a NEXT_REDIRECT error.
-        // So we need to handle it carefully if we want to catch other errors.
-        // Ideally, we'd use useFormState, but for simplicity:
         try {
             const result = await login(formData)
             if (result?.error) {
                 setError(result.error)
+                toast.error(result.error)
                 setLoading(false)
+            } else if (result?.success && result?.redirectUrl) {
+                toast.success('Welcome back!')
+                router.push(result.redirectUrl)
             }
         } catch (e) {
-            // If it's a redirect, it actually throws, so we let it bubble up or handle?
-            // Actually, client-side invocation of server action that redirects will just redirect the browser.
-            // Unless we catch it.
+            setError('An unexpected error occurred')
+            toast.error('An unexpected error occurred')
+            setLoading(false)
         }
     }
 

@@ -29,8 +29,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         <div className="h-full flex flex-col p-6">
             <header className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white mb-1">{project.ProjectName}</h1>
-                    <p className="text-slate-400 text-sm">{project.Description}</p>
+                    <h1 className="text-2xl font-bold text-foreground mb-1">{project.ProjectName}</h1>
+                    <p className="text-muted-foreground text-sm font-medium">{project.Description}</p>
                 </div>
             </header>
 

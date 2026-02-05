@@ -78,7 +78,7 @@ export async function deleteUser(userId: number) {
             where: { UserID: userId }
         })
         revalidatePath('/admin/users')
-        return { success: true }
+        return { success: true, message: 'User deleted successfully' }
     } catch (error) {
         console.error('Delete user error:', error)
         return { error: 'Failed to delete user' }

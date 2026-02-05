@@ -6,6 +6,7 @@ interface ProfileStatsProps {
         totalTasks: number
         completedTasks: number
         pendingTasks: number
+        completionRate: number
     }
 }
 
@@ -33,11 +34,19 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
             bg: 'bg-green-500/10'
         },
         {
-            label: 'Pending',
-            value: stats.pendingTasks,
+            label: 'Task Progress',
+            value: `${stats.completionRate}%`,
             icon: Clock,
             color: 'text-orange-500',
-            bg: 'bg-orange-500/10'
+            bg: 'bg-orange-500/10',
+            extra: (
+                <div className="mt-3 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                    <div
+                        className="bg-orange-500 h-full transition-all duration-500 ease-out"
+                        style={{ width: `${stats.completionRate}%` }}
+                    />
+                </div>
+            )
         }
     ]
 
@@ -54,6 +63,7 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
                         <div className="text-2xl font-bold text-white mb-1">{item.value}</div>
                         <div className="text-sm text-slate-500">{item.label}</div>
                     </div>
+                    {item.extra}
                 </div>
             ))}
         </div>

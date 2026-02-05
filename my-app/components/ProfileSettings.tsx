@@ -1,8 +1,9 @@
 'use client'
 
 import { updateUserProfile, deleteProfileImage } from '@/actions/profile'
-import { Save, Lock, Trash2, Camera } from 'lucide-react'
+import { Save, Lock, Trash2, Camera, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 interface ProfileSettingsProps {
     user: {
@@ -14,6 +15,8 @@ interface ProfileSettingsProps {
 
 export default function ProfileSettings({ user }: ProfileSettingsProps) {
     const [isLoading, setIsLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
     async function handleSubmit(formData: FormData) {
@@ -31,26 +34,32 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setIsLoading(false)
     }
 
-    async function handleDeleteImage() {
-        if (!confirm('Are you sure you want to remove your profile photo?')) return
-
-        setIsLoading(true)
-        setMessage(null)
-
-        const result = await deleteProfileImage()
-
-        if (result?.error) {
-            setMessage({ type: 'error', text: result.error })
-        } else {
-            setMessage({ type: 'success', text: 'Profile photo removed' })
-        }
-        setIsLoading(false)
+    function handleDeleteImage() {
+        toast('Are you sure you want to remove your profile photo?', {
+            action: {
+                label: 'Delete',
+                onClick: async () => {
+                    setIsLoading(true)
+                    const result = await deleteProfileImage()
+                    if (result?.error) {
+                        toast.error(result.error)
+                    } else {
+                        toast.success('Profile photo removed')
+                    }
+                    setIsLoading(false)
+                }
+            },
+            cancel: {
+                label: 'Cancel',
+                onClick: () => { }
+            },
+        })
     }
 
     return (
-        <div className="bg-slate-900/50 border border-white/5 rounded-xl p-6 h-full">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Lock className="w-5 h-5 text-purple-500" />
+        <div className="bg-card border border-theme rounded-xl p-6 h-full shadow-sm">
+            <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-primary" />
                 Account Settings
             </h3>
 
@@ -58,53 +67,93 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                 <div className="relative group">
                     {user.ProfileImage ? (
                         <div className="relative">
-                            <img src={user.ProfileImage} alt="Profile" className="w-16 h-16 rounded-full object-cover ring-2 ring-purple-500/50" />
+                            <img src={user.ProfileImage} alt="Profile" className="w-16 h-16 rounded-full object-cover ring-2 ring-primary/50" />
                             <button
                                 onClick={handleDeleteImage}
                                 disabled={isLoading}
-                                className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
                                 title="Remove photo"
                             >
                                 <Trash2 className="w-3 h-3" />
                             </button>
                         </div>
                     ) : (
-                        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center ring-2 ring-white/10">
-                            <Camera className="w-6 h-6 text-slate-500" />
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center ring-2 ring-theme">
+                            <Camera className="w-6 h-6 text-muted-foreground" />
                         </div>
                     )}
                 </div>
                 <div>
-                    <p className="text-sm font-medium text-white">Profile Photo</p>
-                    <p className="text-xs text-slate-400">Click the upload button in the header to change.</p>
+                    <p className="text-sm font-semibold text-foreground">Profile Photo</p>
+                    <p className="text-xs text-muted-foreground">Click the upload button in the header to change.</p>
                 </div>
             </div>
 
             <form action={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Full Name</label>
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1">Full Name</label>
                     <input
                         type="text"
                         name="name"
                         defaultValue={user.UserName}
-                        className="w-full bg-slate-950 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-slate-600"
+                        className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50"
                         placeholder="Enter your name"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Email Address</label>
+                    <label className="block text-sm font-semibold text-muted-foreground mb-1">Email Address</label>
                     <input
                         type="email"
                         value={user.Email}
                         disabled
-                        className="w-full bg-slate-950/50 border border-white/5 rounded-lg px-4 py-2.5 text-slate-500 cursor-not-allowed"
+                        className="w-full bg-muted/50 border border-theme rounded-lg px-4 py-2.5 text-muted-foreground cursor-not-allowed opacity-70"
                     />
-                    <p className="text-xs text-slate-600 mt-1">Email cannot be changed</p>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">Email cannot be changed</p>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label className="block text-sm font-semibold text-muted-foreground mb-1">New Password</label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                name="password"
+                                className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50 pr-12"
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-muted-foreground mb-1">Confirm Password</label>
+                        <div className="relative">
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                name="confirmPassword"
+                                className="w-full bg-input border border-theme rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50 pr-12"
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xs text-muted-foreground font-medium">Leave blank to keep your current password.</p>
+
                 {message && (
-                    <div className={`text-sm p-3 rounded-lg ${message.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                    <div className={`text-sm p-3 rounded-lg font-medium ${message.type === 'success' ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
                         {message.text}
                     </div>
                 )}
@@ -112,7 +161,7 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white font-medium py-2.5 rounded-lg border border-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white font-bold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
                 >
                     <Save className="w-4 h-4" />
                     {isLoading ? 'Saving...' : 'Save Changes'}

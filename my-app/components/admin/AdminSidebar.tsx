@@ -24,7 +24,7 @@ export default function AdminSidebar() {
     return (
         <>
             {/* Mobile Header */}
-            <div className="md:hidden flex items-center justify-between p-4 border-b border-red-500/10 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-30">
+            <div className="md:hidden flex items-center justify-between p-4 border-b border-red-500/10 bg-slate-900/50 backdrop-blur-xl">
                 <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-red-500/20 flex items-center justify-center">
                         <Shield className="h-5 w-5 text-red-500" />

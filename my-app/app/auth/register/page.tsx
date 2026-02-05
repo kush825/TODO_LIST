@@ -6,6 +6,8 @@ import { useState } from 'react'
 import { Eye, EyeOff, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+import { toast } from 'sonner'
+
 export default function RegisterPage() {
     const [error, setError] = useState('')
     const [success, setSuccess] = useState(false)
@@ -23,9 +25,11 @@ export default function RegisterPage() {
             const result = await register(formData)
             if (result?.error) {
                 setError(result.error)
+                toast.error(result.error)
                 setLoading(false)
             } else if (result?.success) {
                 setSuccess(true)
+                toast.success('Account created successfully!')
                 // Wait for 2 seconds before redirecting
                 setTimeout(() => {
                     router.push('/auth/login')
@@ -33,6 +37,7 @@ export default function RegisterPage() {
             }
         } catch (e) {
             setError('Something went wrong')
+            toast.error('Something went wrong')
             setLoading(false)
         }
     }

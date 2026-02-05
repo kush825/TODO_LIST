@@ -4,22 +4,40 @@ import { useState } from 'react'
 import { deleteUser } from '@/actions/admin'
 import { Trash2, Shield, ShieldAlert, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import DeleteUserModal from './DeleteUserModal'
 
 export default function UsersTable({ users }: { users: any[] }) {
     const [loadingId, setLoadingId] = useState<number | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [userToDelete, setUserToDelete] = useState<{ id: number, name: string } | null>(null)
 
     const filteredUsers = users.filter(user =>
         user.UserName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.Email.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    async function handleDelete(id: number) {
-        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
+    function handleDeleteClick(user: any) {
+        setUserToDelete({ id: user.UserID, name: user.UserName })
+    }
 
-        setLoadingId(id)
-        await deleteUser(id)
-        setLoadingId(null)
+    async function confirmDelete() {
+        if (!userToDelete) return
+
+        setLoadingId(userToDelete.id)
+        try {
+            const result = await deleteUser(userToDelete.id)
+            if (result.success) {
+                toast.success(result.message || `User "${userToDelete.name}" deleted successfully`)
+            } else {
+                toast.error(result.error || 'Failed to delete user')
+            }
+        } catch (error) {
+            toast.error('An unexpected error occurred')
+        } finally {
+            setLoadingId(null)
+            setUserToDelete(null)
+        }
     }
 
     return (
@@ -28,64 +46,64 @@ export default function UsersTable({ users }: { users: any[] }) {
                 <input
                     type="text"
                     placeholder="Search users..."
-                    className="w-full md:w-64 bg-slate-900 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500 placeholder:text-slate-500"
+                    className="w-full md:w-64 bg-input border border-theme rounded-lg pl-9 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Search className="h-4 w-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
 
-            <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden backdrop-blur-md">
+            <div className="bg-card/50 border border-theme rounded-2xl overflow-hidden backdrop-blur-md shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead>
-                            <tr className="border-b border-white/5 bg-white/5">
-                                <th className="px-6 py-4 font-semibold text-slate-300">Name</th>
-                                <th className="px-6 py-4 font-semibold text-slate-300">Email</th>
-                                <th className="px-6 py-4 font-semibold text-slate-300">Role</th>
-                                <th className="px-6 py-4 font-semibold text-slate-300">Joined</th>
-                                <th className="px-6 py-4 font-semibold text-slate-300 text-right">Actions</th>
+                            <tr className="border-b border-theme bg-muted/30">
+                                <th className="px-6 py-4 font-semibold text-foreground/70">Name</th>
+                                <th className="px-6 py-4 font-semibold text-foreground/70">Email</th>
+                                <th className="px-6 py-4 font-semibold text-foreground/70">Role</th>
+                                <th className="px-6 py-4 font-semibold text-foreground/70">Joined</th>
+                                <th className="px-6 py-4 font-semibold text-foreground/70 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-theme/50">
                             {filteredUsers.map((user) => {
                                 const isAdmin = user.userroles.some((ur: any) => ur.roles.RoleName === 'Admin')
 
                                 return (
-                                    <tr key={user.UserID} className="hover:bg-white/5 transition-colors group">
-                                        <td className="px-6 py-4 font-medium text-white">
+                                    <tr key={user.UserID} className="hover:bg-muted/30 transition-colors group">
+                                        <td className="px-6 py-4 font-medium text-foreground">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold">
+                                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
                                                     {user.UserName.charAt(0).toUpperCase()}
                                                 </div>
                                                 {user.UserName}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400">{user.Email}</td>
+                                        <td className="px-6 py-4 text-muted-foreground">{user.Email}</td>
                                         <td className="px-6 py-4">
                                             {isAdmin ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
                                                     <ShieldAlert className="h-3 w-3" />
                                                     Admin
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
                                                     User
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500 font-mono text-xs">
+                                        <td className="px-6 py-4 text-muted-foreground font-mono text-xs">
                                             {new Date(user.CreatedAt).toISOString().split('T')[0]}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <button
-                                                onClick={() => handleDelete(user.UserID)}
+                                                onClick={() => handleDeleteClick(user)}
                                                 disabled={loadingId === user.UserID || isAdmin}
                                                 className={cn(
                                                     "p-2 rounded-lg transition-all",
                                                     isAdmin
-                                                        ? "text-slate-600 cursor-not-allowed opacity-50"
-                                                        : "text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                                                        ? "text-muted-foreground/30 cursor-not-allowed"
+                                                        : "text-muted-foreground hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 disabled:opacity-50"
                                                 )}
                                                 title={isAdmin ? "Cannot delete admin" : "Delete User"}
                                             >
@@ -99,11 +117,20 @@ export default function UsersTable({ users }: { users: any[] }) {
                     </table>
                 </div>
                 {filteredUsers.length === 0 && (
-                    <div className="p-12 text-center text-slate-500">
+                    <div className="p-12 text-center text-muted-foreground">
                         No users found.
                     </div>
                 )}
+
             </div>
+
+            <DeleteUserModal
+                isOpen={!!userToDelete}
+                onClose={() => setUserToDelete(null)}
+                onConfirm={confirmDelete}
+                userName={userToDelete?.name || ''}
+                loading={loadingId === userToDelete?.id}
+            />
         </div>
     )
 }

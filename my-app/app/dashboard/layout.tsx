@@ -10,6 +10,7 @@ import ProjectSearch from '@/components/ProjectSearch'
 
 import { logout } from '@/actions/auth'
 import Sidebar from '@/components/Sidebar'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
 export default async function DashboardLayout({
     children,
@@ -39,20 +40,30 @@ export default async function DashboardLayout({
     const projects = await getProjects()
 
     return (
-        <div className="flex h-dvh w-full overflow-hidden flex-col md:flex-row bg-slate-900 text-slate-100 font-sans selection:bg-purple-500/30">
-            <Sidebar
-                user={{
-                    UserName: userName,
-                    Email: userEmail,
-                    ProfileImage: userImage
-                }}
-                projects={projects}
-            />
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <div className="flex min-h-screen md:h-dvh w-full md:overflow-hidden flex-col md:flex-row bg-background text-foreground font-sans selection:bg-purple-500/30 transition-colors duration-300">
+                <Sidebar
+                    user={{
+                        UserName: userName,
+                        Email: userEmail,
+                        ProfileImage: userImage
+                    }}
+                    projects={projects}
+                />
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto bg-slate-950 bg-[url('/grid.svg')] bg-[size:100px_100px]">
-                {children}
-            </main>
-        </div>
+                {/* Main Content */}
+                <main className="flex-1 md:overflow-y-auto mesh-gradient relative">
+                    <div className="absolute inset-0 bg-grid-slate-900/[0.04] bg-[bottom_1px_center] dark:bg-grid-slate-400/[0.05] [mask-image:linear-gradient(to_bottom,white,transparent)] pointer-events-none" />
+                    <div className="relative z-10">
+                        {children}
+                    </div>
+                </main>
+            </div>
+        </ThemeProvider>
     )
 }

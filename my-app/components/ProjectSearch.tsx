@@ -29,11 +29,11 @@ export default function ProjectSearch({ onSearch }: { onSearch?: (term: string) 
             <input
                 type="text"
                 placeholder="Search projects..."
-                className="w-full bg-slate-900 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500 placeholder:text-slate-500"
+                className="w-full bg-input border border-theme rounded-lg pl-9 pr-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
                 onChange={(e) => handleSearch(e.target.value)}
                 defaultValue={onSearch ? undefined : searchParams.get('search')?.toString()}
             />
-            <Search className="h-4 w-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
     )
 }

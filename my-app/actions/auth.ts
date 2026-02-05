@@ -92,19 +92,15 @@ export async function login(formData: FormData) {
         const isAdmin = user.userroles.some((ur: any) => ur.roles.RoleName === 'Admin')
 
         if (isAdmin) {
-            redirect('/admin')
+            return { success: true, redirectUrl: '/admin' }
         }
 
     } catch (error) {
-        // Next.js redirect throws an error, so we need to re-throw it if it's a redirect
-        if ((error as any).digest?.startsWith('NEXT_REDIRECT')) {
-            throw error
-        }
         console.error('Login error:', error)
         return { error: 'Login failed' }
     }
 
-    redirect('/dashboard')
+    return { success: true, redirectUrl: '/dashboard' }
 }
 
 export async function logout() {

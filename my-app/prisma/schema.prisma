@@ -97,11 +97,12 @@ model users {
   UserName     String         @unique(map: "UserName") @db.VarChar(50)
   Email        String         @unique(map: "Email") @db.VarChar(100)
   PasswordHash String         @db.VarChar(255)
-  ProfileImage String?        @db.VarChar(255)
   CreatedAt    DateTime?      @default(now()) @db.DateTime(0)
+  ProfileImage String?        @db.VarChar(255)
   projects     projects[]
   taskcomments taskcomments[]
   taskhistory  taskhistory[]
   tasks        tasks[]
   userroles    userroles[]
 }
+

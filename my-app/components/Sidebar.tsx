@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation'
 import ProjectSidebarItem from './ProjectSidebarItem'
 import ProjectSearch from './ProjectSearch'
 import { useSearchParams } from 'next/navigation'
+import { ThemeToggle } from './ThemeToggle'
 
 interface SidebarProps {
     user: {
@@ -32,13 +33,13 @@ const SidebarContent = ({
     onSearch: (term: string) => void
 }) => {
     return (
-        <div className="h-full flex flex-col bg-slate-900 border-r border-white/5">
+        <div className="h-full flex flex-col bg-card border-r border-theme">
             <div className="p-6">
                 <div className={`flex items-center gap-3 mb-8 ${mobile ? 'hidden' : 'md:flex hidden'}`}>
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <ListTodo className="h-5 w-5 text-white" />
                     </div>
-                    <h1 className="font-bold text-xl tracking-tight text-white">TaskFlow</h1>
+                    <h1 className="font-bold text-xl tracking-tight text-foreground">TaskFlow</h1>
                 </div>
                 {mobile && (
                     <div className="flex items-center justify-between mb-8 md:hidden">
@@ -46,11 +47,11 @@ const SidebarContent = ({
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
                                 <ListTodo className="h-5 w-5 text-white" />
                             </div>
-                            <h1 className="font-bold text-xl tracking-tight text-white">TaskFlow</h1>
+                            <h1 className="font-bold text-xl tracking-tight text-foreground">TaskFlow</h1>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-white/10"
+                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/10"
                         >
                             <X className="h-6 w-6" />
                         </button>
@@ -60,21 +61,28 @@ const SidebarContent = ({
                 <div className="space-y-1">
                     <Link
                         href="/dashboard"
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/5 text-white font-medium ring-1 ring-white/5 shadow-sm"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium border border-primary/20 shadow-sm"
                         onClick={onClose}
                     >
-                        <LayoutDashboard className="h-4 w-4 text-purple-400" />
+                        <LayoutDashboard className="h-4 w-4 text-primary" />
                         Overview
                     </Link>
+                </div>
+
+                <div className="mt-8 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Interface</h2>
+                        <ThemeToggle />
+                    </div>
                 </div>
             </div>
 
             <div className="px-6 mb-2">
                 <ProjectSearch onSearch={onSearch} />
                 <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Projects</h2>
-                    <Link href="/dashboard" className="h-5 w-5 rounded hover:bg-white/10 flex items-center justify-center transition-colors">
-                        <Plus className="h-3.5 w-3.5 text-slate-400" />
+                    <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projects</h2>
+                    <Link href="/dashboard" className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center transition-colors">
+                        <Plus className="h-3.5 w-3.5 text-muted-foreground" />
                     </Link>
                 </div>
             </div>
@@ -85,31 +93,31 @@ const SidebarContent = ({
                         <ProjectSidebarItem key={project.ProjectID} project={project} />
                     ))}
                     {projects.length === 0 && (
-                        <p className="text-xs text-slate-500 italic">No projects found.</p>
+                        <p className="text-xs text-muted-foreground italic">No projects found.</p>
                     )}
                 </nav>
             </div>
 
-            <div className="p-4 border-t border-white/5">
+            <div className="p-4 border-t border-theme">
                 <Link
                     href="/dashboard/profile"
-                    className="flex items-center gap-3 px-3 py-2 mb-2 hover:bg-white/5 rounded-lg transition-colors group"
+                    className="flex items-center gap-3 px-3 py-2 mb-2 hover:bg-muted rounded-lg transition-colors group"
                     onClick={onClose}
                 >
                     {user.ProfileImage ? (
-                        <img src={user.ProfileImage} alt={user.UserName} className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-purple-500/50 transition-all" />
+                        <img src={user.ProfileImage} alt={user.UserName} className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent group-hover:ring-primary transition-all" />
                     ) : (
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-slate-900 font-bold text-xs ring-2 ring-transparent group-hover:ring-purple-500/50 transition-all">
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-slate-900 font-bold text-xs ring-2 ring-transparent group-hover:ring-primary transition-all">
                             {user.UserName.charAt(0).toUpperCase()}
                         </div>
                     )}
                     <div className="overflow-hidden">
-                        <p className="text-sm font-medium truncate text-white group-hover:text-purple-300 transition-colors">{user.UserName}</p>
-                        <p className="text-xs text-slate-500 truncate">{user.Email}</p>
+                        <p className="text-sm font-medium truncate text-foreground group-hover:text-primary transition-colors">{user.UserName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
                     </div>
                 </Link>
                 <form action={logout}>
-                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-colors">
+                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors">
                         <LogOut className="h-4 w-4" />
                         Sign Out
                     </button>

@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import bcrypt from 'bcryptjs'
 
 export async function getUserProfile(page: number = 1) {
     const session = await getSession()
@@ -70,7 +71,8 @@ export async function getUserProfile(page: number = 1) {
             projects: projectCount,
             totalTasks: taskCount,
             completedTasks: completedTaskCount,
-            pendingTasks: taskCount - completedTaskCount
+            pendingTasks: taskCount - completedTaskCount,
+            completionRate: taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0
         },
         recentActivity,
         pagination: {
@@ -86,15 +88,31 @@ export async function updateUserProfile(formData: FormData) {
     if (!session) return { error: 'Unauthorized' }
 
     const name = formData.get('name') as string
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
 
     if (!name || name.trim().length === 0) {
         return { error: 'Name is required' }
     }
 
+    // Prepare update data
+    const updateData: any = { UserName: name }
+
+    // If password is provided, handle hashing
+    if (password) {
+        if (password !== confirmPassword) {
+            return { error: 'Passwords do not match' }
+        }
+        if (password.length < 6) {
+            return { error: 'Password must be at least 6 characters' }
+        }
+        updateData.PasswordHash = await bcrypt.hash(password, 10)
+    }
+
     try {
         await prisma.users.update({
             where: { UserID: session.userId as number },
-            data: { UserName: name }
+            data: updateData
         })
         revalidatePath('/dashboard/profile')
         return { success: true }
