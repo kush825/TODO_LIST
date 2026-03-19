@@ -1,6 +1,5 @@
 'use client'
 
-import { register } from '@/actions/auth'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Eye, EyeOff, CheckCircle } from 'lucide-react'
@@ -16,16 +15,29 @@ export default function RegisterPage() {
     const router = useRouter()
 
     // this function handles the form submission
-    async function handleSubmit(formData: FormData) {
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
         setLoading(true)
         setError('')
         setSuccess(false)
 
+        const formData = new FormData(e.currentTarget)
+        const name = formData.get('name')
+        const email = formData.get('email')
+        const password = formData.get('password')
+
         try {
-            const result = await register(formData)
-            if (result?.error) {
-                setError(result.error)
-                toast.error(result.error)
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            })
+
+            const result = await response.json()
+
+            if (!response.ok) {
+                setError(result.error || 'Registration failed')
+                toast.error(result.error || 'Registration failed')
                 setLoading(false)
             } else if (result?.success) {
                 setSuccess(true)
@@ -66,7 +78,7 @@ export default function RegisterPage() {
                 <p className="text-white/60">Join us and organize your tasks</p>
             </div>
 
-            <form action={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                     <label className="block text-sm font-medium text-white/80 mb-2">Full Name</label>
                     <input

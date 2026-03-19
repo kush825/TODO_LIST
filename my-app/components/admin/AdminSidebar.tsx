@@ -4,16 +4,18 @@ import { Shield, LayoutDashboard, Users, LogOut, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { logout } from '@/actions/auth'
 import { cn } from '@/lib/utils'
 
 export default function AdminSidebar() {
     const [isOpen, setIsOpen] = useState(false)
     const pathname = usePathname()
 
-    // Handle logout using the server action
+    // Handle logout using the API
     async function handleLogout() {
-        await logout()
+        const response = await fetch('/api/auth/logout', { method: 'POST' });
+        if (response.ok) {
+            window.location.href = '/auth/login';
+        }
     }
 
     const navigation = [

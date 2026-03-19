@@ -1,9 +1,8 @@
 'use client'
 
-import { LayoutDashboard, LogOut, Plus, ListTodo, Menu, X } from 'lucide-react'
+import { LayoutDashboard, LogOut, Plus, ListTodo, Menu, X, Calendar as CalendarIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { logout } from '@/actions/auth'
 import { usePathname } from 'next/navigation'
 import ProjectSidebarItem from './ProjectSidebarItem'
 import ProjectSearch from './ProjectSearch'
@@ -61,12 +60,46 @@ const SidebarContent = ({
                 <div className="space-y-1">
                     <Link
                         href="/dashboard"
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-medium border border-primary/20 shadow-sm"
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium border ${usePathname() === '/dashboard'
+                            ? 'bg-primary/10 text-primary border-primary/20 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border-transparent'}`}
                         onClick={onClose}
                     >
-                        <LayoutDashboard className="h-4 w-4 text-primary" />
+                        <LayoutDashboard className="h-4 w-4" />
                         Overview
                     </Link>
+                    <Link
+                        href="/dashboard/calendar"
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium border ${usePathname() === '/dashboard/calendar'
+                            ? 'bg-primary/10 text-primary border-primary/20 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border-transparent'}`}
+                        onClick={onClose}
+                    >
+                        <CalendarIcon className="h-4 w-4" />
+                        Calendar
+                    </Link>
+                    <Link
+                        href="/dashboard/tasks"
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium border ${usePathname() === '/dashboard/tasks'
+                            ? 'bg-primary/10 text-primary border-primary/20 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border-transparent'}`}
+                        onClick={onClose}
+                    >
+                        <ListTodo className="h-4 w-4" />
+                        All Tasks
+                    </Link>
+                    {user.role === 'Admin' && (
+                        <Link
+                            href="/admin"
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium border ${usePathname().startsWith('/admin')
+                                ? 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border-transparent'}`}
+                            onClick={onClose}
+                        >
+                            <LayoutDashboard className="h-4 w-4" />
+                            Admin Panel
+                        </Link>
+                    )}
                 </div>
 
                 <div className="mt-8 flex flex-col gap-4">
@@ -81,9 +114,11 @@ const SidebarContent = ({
                 <ProjectSearch onSearch={onSearch} />
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Projects</h2>
-                    <Link href="/dashboard" className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center transition-colors">
-                        <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Link>
+                    {(user.role === 'Admin' || user.role === 'ProjectManager') && (
+                        <Link href="/dashboard" className="h-5 w-5 rounded hover:bg-muted flex items-center justify-center transition-colors">
+                            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -116,12 +151,18 @@ const SidebarContent = ({
                         <p className="text-xs text-muted-foreground truncate">{user.Email}</p>
                     </div>
                 </Link>
-                <form action={logout}>
-                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors">
-                        <LogOut className="h-4 w-4" />
-                        Sign Out
-                    </button>
-                </form>
+                <button
+                    onClick={async () => {
+                        const response = await fetch('/api/auth/logout', { method: 'POST' });
+                        if (response.ok) {
+                            window.location.href = '/auth/login';
+                        }
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                </button>
             </div>
         </div>
     )

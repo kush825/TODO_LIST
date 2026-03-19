@@ -2,7 +2,6 @@
 
 import { Mail, Edit2, User, Camera, Loader2 } from 'lucide-react'
 import { useState, useRef } from 'react'
-import { uploadProfileImage } from '@/actions/profile'
 import { useRouter } from 'next/navigation'
 
 interface ProfileHeaderProps {
@@ -26,10 +25,17 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
         const formData = new FormData()
         formData.append('file', file)
 
-        const result = await uploadProfileImage(formData)
+        try {
+            const response = await fetch('/api/user/profile-image', {
+                method: 'POST',
+                body: formData
+            });
 
-        if (result?.success) {
+            if (!response.ok) throw new Error('Upload failed');
+
             router.refresh()
+        } catch (error) {
+            console.error('Error uploading image:', error);
         }
 
         setIsUploading(false)

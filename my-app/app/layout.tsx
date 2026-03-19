@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +39,19 @@ export default function RootLayout({
           richColors
           theme="dark"
         />
+        <Script id="suppress-extension-errors" strategy="afterInteractive">
+          {`
+            (function() {
+              const originalError = console.error;
+              console.error = function(...args) {
+                if (args[0] && typeof args[0] === 'string' && args[0].includes('A listener indicated an asynchronous response by returning true')) {
+                  return;
+                }
+                originalError.apply(console, args);
+              };
+            })();
+          `}
+        </Script>
       </body>
     </html>
   );

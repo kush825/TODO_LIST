@@ -1,15 +1,9 @@
-import { getTasks } from '@/actions/tasks'
-import { getProjects } from '@/actions/projects' // helper to get single project name?
 import { prisma } from '@/lib/prisma'
-import KanbanBoard from '@/components/KanbanBoard'
+import ProjectViewManager from '@/components/ProjectViewManager'
 import { redirect } from 'next/navigation'
 import { getSession } from '@/lib/auth'
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
-    // Await the params since Next.js 15+ (or recent 14 changes) might treat params as promise
-    // Actually in standard 14, params is an object. check user next version. 16.1.1. In 15/16 params is a promise.
-    // Wait, package.json says "next": "16.1.1". So YES, params is a Promise.
-
     const { id } = await params
     const projectId = parseInt(id)
     if (isNaN(projectId)) redirect('/dashboard')
@@ -23,19 +17,56 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
     if (!project) redirect('/dashboard')
 
-    const tasks = await getTasks(projectId)
+    const tasks = await prisma.tasks.findMany({
+        where: {
+            tasklists: {
+                ProjectID: projectId
+            }
+        },
+        include: {
+            tasklists: true,
+            users: {
+                select: {
+                    UserName: true
+                }
+            }
+        },
+        orderBy: { CreatedAt: 'desc' }
+    })
+
+    let taskList = await prisma.tasklists.findFirst({
+        where: { ProjectID: projectId }
+    })
+
+    if (!taskList) {
+        taskList = await prisma.tasklists.create({
+            data: {
+                ListName: 'Default List',
+                projects: {
+                    connect: {
+                        ProjectID: projectId
+                    }
+                }
+            }
+        })
+    }
 
     return (
-        <div className="h-full flex flex-col p-6">
-            <header className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground mb-1">{project.ProjectName}</h1>
-                    <p className="text-muted-foreground text-sm font-medium">{project.Description}</p>
-                </div>
-            </header>
-
-            <div className="flex-1 overflow-x-auto overflow-y-hidden">
-                <KanbanBoard projectId={projectId} initialTasks={tasks} />
+        <div className="h-full flex flex-col p-6 overflow-hidden">
+            <div className="flex-1 overflow-hidden">
+                <ProjectViewManager
+                    project={project}
+                    listId={taskList.ListID}
+                    userRole={session.role}
+                    initialTasks={tasks.map(t => ({
+                        ...t,
+                        DueDate: t.DueDate || null,
+                        CreatedAt: t.CreatedAt || null,
+                        ProjectName: project.ProjectName,
+                        AssignedToName: t.users?.UserName || 'Unassigned',
+                        UpdatedAt: t.UpdatedAt
+                    }))}
+                />
             </div>
         </div>
     )

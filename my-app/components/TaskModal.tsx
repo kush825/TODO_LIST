@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { X, Trash2, Save, MessageSquare, Clock, Send } from 'lucide-react'
-import { updateTaskDetails, addComment, getTaskDetails } from '@/actions/tasks'
 import { cn } from '@/lib/utils'
 
 export default function TaskModal({ task: initialTask, onClose, onUpdate, onDelete }: {
@@ -15,6 +14,7 @@ export default function TaskModal({ task: initialTask, onClose, onUpdate, onDele
     const [title, setTitle] = useState(initialTask.Title)
     const [description, setDescription] = useState(initialTask.Description || '')
     const [priority, setPriority] = useState(initialTask.Priority || 'Medium')
+    const [status, setStatus] = useState(initialTask.Status || 'Pending')
     const [loading, setLoading] = useState(false)
     const [activeTab, setActiveTab] = useState<'details' | 'comments' | 'history'>('details')
     const [newComment, setNewComment] = useState('')
@@ -23,18 +23,24 @@ export default function TaskModal({ task: initialTask, onClose, onUpdate, onDele
 
     useEffect(() => {
         // Fetch full details including comments and history
-        getTaskDetails(initialTask.TaskID).then((data) => {
-            if (data) {
+        async function fetchDetails() {
+            try {
+                const response = await fetch(`/api/task/${initialTask.TaskID}`);
+                if (!response.ok) throw new Error('Failed to fetch details');
+                const data = await response.json();
                 setTaskData(data)
                 setComments(data.taskcomments || [])
                 setHistory(data.taskhistory || [])
+            } catch (error) {
+                console.error('Error fetching details:', error);
             }
-        })
+        }
+        fetchDetails();
     }, [initialTask.TaskID])
 
     async function handleSave() {
         setLoading(true)
-        await onUpdate(task.TaskID, { title, description, priority })
+        await onUpdate(task.TaskID, { Title: title, Description: description, Priority: priority, Status: status })
         setLoading(false)
         onClose()
     }
@@ -47,12 +53,28 @@ export default function TaskModal({ task: initialTask, onClose, onUpdate, onDele
 
     async function handleAddComment() {
         if (!newComment.trim()) return
-        await addComment(task.TaskID, newComment)
-        setNewComment('')
-        // Refresh local data
-        const data = await getTaskDetails(task.TaskID)
-        if (data) {
-            setComments(data.taskcomments || [])
+
+        try {
+            const response = await fetch('/api/comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    TaskID: task.TaskID,
+                    CommentText: newComment
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to add comment');
+
+            setNewComment('')
+            // Refresh local data
+            const detailsResponse = await fetch(`/api/task/${task.TaskID}`);
+            const data = await detailsResponse.json();
+            if (data) {
+                setComments(data.taskcomments || [])
+            }
+        } catch (error) {
+            console.error('Error adding comment:', error);
         }
     }
 
@@ -108,6 +130,18 @@ export default function TaskModal({ task: initialTask, onClose, onUpdate, onDele
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Status</label>
+                                    <select
+                                        value={status}
+                                        onChange={(e) => setStatus(e.target.value)}
+                                        className="w-full bg-input border border-theme rounded-lg px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                    >
+                                        <option value="Pending">To Do</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Completed">Completed</option>
+                                    </select>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Priority</label>
                                     <select

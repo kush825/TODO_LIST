@@ -1,4 +1,5 @@
-import { getUserProfile } from '@/actions/profile'
+import { getSession } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import ProfileHeader from '@/components/ProfileHeader'
 import ProfileStats from '@/components/ProfileStats'
 import ProfileSettings from '@/components/ProfileSettings'
@@ -15,10 +16,88 @@ export default async function ProfilePage({
     // Await searchParams before accessing properties
     const params = await searchParams
     const currentPage = Number(params?.page) || 1
-    const profile = await getUserProfile(currentPage)
+    const session = await getSession()
+    if (!session) redirect('/auth/login')
 
-    if (!profile) {
-        redirect('/auth/login')
+    const user = await prisma.users.findUnique({
+        where: { UserID: session.userId as number },
+        select: {
+            UserName: true,
+            Email: true,
+            // @ts-ignore
+            ProfileImage: true
+        }
+    })
+
+    if (!user) redirect('/auth/login')
+
+    const projectCount = await prisma.projects.count({
+        where: { CreatedBy: session.userId as number }
+    })
+
+    const taskCount = await prisma.tasks.count({
+        where: { AssignedTo: session.userId as number }
+    })
+
+    const completedTaskCount = await prisma.tasks.count({
+        where: {
+            AssignedTo: session.userId as number,
+            Status: 'Completed'
+        }
+    })
+
+    const inProgressTaskCount = await prisma.tasks.count({
+        where: {
+            AssignedTo: session.userId as number,
+            Status: 'In Progress'
+        }
+    })
+
+    const PAGE_SIZE = 4
+    const skip = (currentPage - 1) * PAGE_SIZE
+
+    const [recentActivity, totalActivityCount] = await Promise.all([
+        prisma.taskhistory.findMany({
+            where: { ChangedBy: session.userId as number },
+            orderBy: { ChangeTime: 'desc' },
+            take: PAGE_SIZE,
+            skip: skip,
+            include: {
+                tasks: {
+                    select: {
+                        Title: true,
+                        tasklists: {
+                            select: {
+                                projects: {
+                                    select: { ProjectName: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }),
+        prisma.taskhistory.count({
+            where: { ChangedBy: session.userId as number }
+        })
+    ])
+
+    const profile = {
+        user,
+        stats: {
+            projects: projectCount,
+            totalTasks: taskCount,
+            completedTasks: completedTaskCount,
+            inProgressTasks: inProgressTaskCount,
+            pendingTasks: taskCount - completedTaskCount - inProgressTaskCount,
+            completionRate: taskCount > 0 ? Math.round((completedTaskCount / taskCount) * 100) : 0
+        },
+        recentActivity,
+        pagination: {
+            currentPage,
+            totalPages: Math.ceil(totalActivityCount / PAGE_SIZE),
+            hasMore: skip + PAGE_SIZE < totalActivityCount
+        }
     }
 
     return (
@@ -40,8 +119,9 @@ export default async function ProfilePage({
                             profile.recentActivity.map((activity: any) => (
                                 <div key={activity.HistoryID} className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors group">
                                     <div className={`w-2 h-2 rounded-full ${activity.ChangeType === 'CREATED' ? 'bg-green-500' :
-                                        activity.ChangeType === 'UPDATED' ? 'bg-blue-500' :
-                                            activity.ChangeType === 'DELETED' ? 'bg-red-500' : 'bg-slate-500'
+                                        activity.ChangeType === 'COMPLETED' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                                            activity.ChangeType === 'UPDATED' ? 'bg-blue-500' :
+                                                activity.ChangeType === 'DELETED' ? 'bg-red-500' : 'bg-slate-500'
                                         }`} />
                                     <div>
                                         <p className="text-sm text-slate-300">

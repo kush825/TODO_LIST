@@ -3,7 +3,6 @@
 import { LayoutDashboard, LogOut, Plus, ListTodo, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { logout } from '@/actions/auth'
 import { usePathname } from 'next/navigation'
 import ProjectSidebarItem from './ProjectSidebarItem'
 
@@ -118,12 +117,18 @@ export default function MobileSidebar({ user, projects }: MobileSidebarProps) {
                                 <p className="text-xs text-slate-500 truncate">{user.Email}</p>
                             </div>
                         </Link>
-                        <form action={logout}>
-                            <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-colors">
-                                <LogOut className="h-4 w-4" />
-                                Sign Out
-                            </button>
-                        </form>
+                        <button
+                            onClick={async () => {
+                                const response = await fetch('/api/auth/logout', { method: 'POST' });
+                                if (response.ok) {
+                                    window.location.href = '/auth/login';
+                                }
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-colors"
+                        >
+                            <LogOut className="h-4 w-4" />
+                            Sign Out
+                        </button>
                     </div>
                 </div>
             </div>

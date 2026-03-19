@@ -8,6 +8,7 @@ export interface SessionPayload {
     userId: number
     email: string
     name: string
+    role: string
     [key: string]: any
 }
 

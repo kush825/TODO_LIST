@@ -1,14 +1,6 @@
-import { getProjects } from '@/actions/projects'
-import { getSession, clearSession } from '@/lib/auth'
+import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { LayoutDashboard, LogOut, Plus, ListTodo } from 'lucide-react'
-import { revalidatePath } from 'next/cache'
-import ProjectSidebarItem from '@/components/ProjectSidebarItem'
-import ProjectSearch from '@/components/ProjectSearch'
-
-import { logout } from '@/actions/auth'
 import Sidebar from '@/components/Sidebar'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
@@ -37,7 +29,35 @@ export default async function DashboardLayout({
     // @ts-ignore
     const userImage = user.ProfileImage
 
-    const projects = await getProjects()
+    // Role-aware project fetching
+    let projects;
+    if (session.role === 'Admin' || session.role === 'ProjectManager') {
+        // Admins and Managers see all projects
+        projects = await prisma.projects.findMany({
+            orderBy: { CreatedAt: 'desc' },
+        })
+    } else {
+        // Team Members and Viewers see projects they created OR have tasks assigned in
+        projects = await prisma.projects.findMany({
+            where: {
+                OR: [
+                    { CreatedBy: session.userId },
+                    {
+                        tasklists: {
+                            some: {
+                                tasks: {
+                                    some: {
+                                        AssignedTo: session.userId
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            orderBy: { CreatedAt: 'desc' },
+        })
+    }
 
     return (
         <ThemeProvider
@@ -51,7 +71,8 @@ export default async function DashboardLayout({
                     user={{
                         UserName: userName,
                         Email: userEmail,
-                        ProfileImage: userImage
+                        ProfileImage: userImage,
+                        role: session.role
                     }}
                     projects={projects}
                 />

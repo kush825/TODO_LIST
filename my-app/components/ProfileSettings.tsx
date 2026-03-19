@@ -1,6 +1,5 @@
 'use client'
 
-import { updateUserProfile, deleteProfileImage } from '@/actions/profile'
 import { Save, Lock, Trash2, Camera, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -23,12 +22,36 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setIsLoading(true)
         setMessage(null)
 
-        const result = await updateUserProfile(formData)
+        const name = formData.get('name') as string
+        const password = formData.get('password') as string
+        const confirmPassword = formData.get('confirmPassword') as string
 
-        if (result?.error) {
-            setMessage({ type: 'error', text: result.error })
-        } else {
+        if (password && password !== confirmPassword) {
+            setMessage({ type: 'error', text: 'Passwords do not match' })
+            setIsLoading(false)
+            return
+        }
+
+        try {
+            // Get current user session to know the ID, or pass it from parent.
+            // Since this is a client component, we might want to pass the userID from the parent.
+            // For now let's assume we can use /api/user/[id] if we had the ID.
+            // Let's modify the props to include userID.
+            const response = await fetch(`/api/user`, { // Or /api/auth/profile if we had it.
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    UserName: name,
+                    ...(password && { PasswordHash: password }) // This needs hashing on backend if passed as raw
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to update profile');
+
             setMessage({ type: 'success', text: 'Profile updated successfully' })
+            window.location.reload()
+        } catch (error) {
+            setMessage({ type: 'error', text: 'Failed to update profile' })
         }
 
         setIsLoading(false)
@@ -40,11 +63,13 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                 label: 'Delete',
                 onClick: async () => {
                     setIsLoading(true)
-                    const result = await deleteProfileImage()
-                    if (result?.error) {
-                        toast.error(result.error)
-                    } else {
+                    try {
+                        const response = await fetch(`/api/user/profile-image`, { method: 'DELETE' });
+                        if (!response.ok) throw new Error('Failed');
                         toast.success('Profile photo removed')
+                        window.location.reload()
+                    } catch (e) {
+                        toast.error('Failed to remove photo')
                     }
                     setIsLoading(false)
                 }

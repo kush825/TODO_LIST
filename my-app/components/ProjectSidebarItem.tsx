@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { Trash2, Edit2, Check, X } from 'lucide-react'
-import { deleteProject, updateProject } from '@/actions/projects'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import DeleteConfirmModal from './DeleteConfirmModal'
@@ -25,8 +24,14 @@ export default function ProjectSidebarItem({ project }: { project: any }) {
     async function handleDelete() {
         setLoading(true)
         try {
-            await deleteProject(project.ProjectID)
+            const response = await fetch(`/api/project/${project.ProjectID}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) throw new Error('Failed to delete project');
+
             toast.success(`Project "${project.ProjectName}" deleted successfully`)
+            router.refresh()
             setIsDeleting(false)
         } catch (error) {
             toast.error('Failed to delete project')
@@ -46,10 +51,23 @@ export default function ProjectSidebarItem({ project }: { project: any }) {
         }
 
         setLoading(true)
-        await updateProject(project.ProjectID, editName)
-        setLoading(false)
-        setIsEditing(false)
-        router.refresh()
+        try {
+            const response = await fetch(`/api/project/${project.ProjectID}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ProjectName: editName })
+            });
+
+            if (!response.ok) throw new Error('Failed to update project');
+
+            toast.success('Project updated')
+            setIsEditing(false)
+            router.refresh()
+        } catch (error) {
+            toast.error('Failed to update project')
+        } finally {
+            setLoading(false)
+        }
     }
 
     function startEdit(e: React.MouseEvent) {

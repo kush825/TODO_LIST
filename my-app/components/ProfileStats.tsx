@@ -5,6 +5,7 @@ interface ProfileStatsProps {
         projects: number
         totalTasks: number
         completedTasks: number
+        inProgressTasks: number
         pendingTasks: number
         completionRate: number
     }
@@ -20,11 +21,11 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
             bg: 'bg-blue-500/10'
         },
         {
-            label: 'Total Tasks',
-            value: stats.totalTasks,
-            icon: PieChart,
-            color: 'text-purple-500',
-            bg: 'bg-purple-500/10'
+            label: 'In Progress',
+            value: stats.inProgressTasks,
+            icon: Clock,
+            color: 'text-blue-400',
+            bg: 'bg-blue-400/10'
         },
         {
             label: 'Completed',
@@ -34,9 +35,9 @@ export default function ProfileStats({ stats }: ProfileStatsProps) {
             bg: 'bg-green-500/10'
         },
         {
-            label: 'Task Progress',
+            label: 'Success Rate',
             value: `${stats.completionRate}%`,
-            icon: Clock,
+            icon: PieChart,
             color: 'text-orange-500',
             bg: 'bg-orange-500/10',
             extra: (

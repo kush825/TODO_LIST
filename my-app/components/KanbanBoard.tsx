@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useId } from 'react'
+import { useState, useEffect, useId, useRef } from 'react'
 import {
     DndContext,
     DragOverlay,
@@ -12,6 +12,7 @@ import {
     DragStartEvent,
     DragOverEvent,
     DragEndEvent,
+    useDroppable,
 } from '@dnd-kit/core'
 import { toast } from 'sonner'
 import {
@@ -22,11 +23,8 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { createTask, updateTaskStatus, updateTaskDetails, deleteTask } from '@/actions/tasks'
 import { Plus, MoreHorizontal, Calendar, Flag } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import TaskModal from './TaskModal'
-import DeleteConfirmModal from './DeleteConfirmModal'
 import { useRouter } from 'next/navigation'
 
 type Task = {
@@ -36,23 +34,36 @@ type Task = {
     Status?: string | null
     Priority?: string | null
     DueDate?: Date | null
+    CreatedAt?: Date | null
 }
 
 const COLUMNS = [
     { id: 'Pending', title: 'To Do', color: 'bg-slate-500' },
     { id: 'In Progress', title: 'In Progress', color: 'bg-blue-500' },
-    { id: 'Completed', title: 'Done', color: 'bg-emerald-500' },
+    { id: 'Completed', title: 'Completed', color: 'bg-emerald-500' },
 ]
 
-export default function KanbanBoard({ projectId, initialTasks }: { projectId: number, initialTasks: any[] }) {
-    const [tasks, setTasks] = useState<Task[]>(initialTasks)
+export default function KanbanBoard({
+    projectId,
+    listId,
+    tasks,
+    setTasks,
+    onTaskClick,
+    userRole
+}: {
+    projectId: number,
+    listId: number,
+    tasks: Task[],
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
+    onTaskClick: (task: Task) => void,
+    userRole?: string
+}) {
+    const isViewer = userRole === 'Viewer'
     const [activeId, setActiveId] = useState<number | null>(null)
-    const [editingTask, setEditingTask] = useState<Task | null>(null)
-    const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
-    const [loading, setLoading] = useState(false)
     const [mounted, setMounted] = useState(false)
     const dndContextId = useId()
     const router = useRouter()
+    const suppressClickRef = useRef(false)
 
     useEffect(() => {
         setMounted(true)
@@ -61,7 +72,7 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -69,24 +80,26 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
         })
     )
 
-    async function handleDragEnd(event: DragEndEvent) {
+    function handleDragOver(event: DragOverEvent) {
+        if (isViewer) return
         const { active, over } = event
-        const activeId = active.id as number
-        const overId = over?.id
+        if (!over) return
 
-        if (!overId) return
+        const activeId = active.id as number
+        const overId = over.id
 
         const activeTask = tasks.find((t) => t.TaskID === activeId)
-        let newStatus = ''
+        if (!activeTask) return
 
+        let newStatus = ''
         if (COLUMNS.find(c => c.id === overId)) {
             newStatus = overId as string
         } else {
             const overTask = tasks.find(t => t.TaskID === overId)
-            newStatus = overTask?.Status || 'Pending'
+            newStatus = overTask?.Status || ''
         }
 
-        if (activeTask && activeTask.Status !== newStatus) {
+        if (newStatus && activeTask.Status !== newStatus) {
             setTasks((tasks) => {
                 return tasks.map(t => {
                     if (t.TaskID === activeId) {
@@ -95,9 +108,51 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
                     return t
                 })
             })
-            await updateTaskStatus(activeId, newStatus)
         }
+    }
+
+    async function handleDragEnd(event: DragEndEvent) {
+        if (isViewer) {
+            setActiveId(null)
+            return
+        }
+        const { active, over } = event
+        const activeId = active.id as number
+        const overId = over?.id
+
+        if (!overId) {
+            setActiveId(null)
+            return
+        }
+
+        const activeTask = tasks.find((t) => t.TaskID === activeId)
+        if (!activeTask) {
+            setActiveId(null)
+            return
+        }
+
+        try {
+            const response = await fetch(`/api/task/${activeId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Status: activeTask.Status })
+            });
+
+            if (!response.ok) throw new Error('Failed to update status');
+            router.refresh();
+        } catch (error) {
+            toast.error('Failed to update task status');
+        }
+
         setActiveId(null)
+        setTimeout(() => {
+            suppressClickRef.current = false
+        }, 100)
+    }
+
+    const handleTaskClick = (task: Task) => {
+        if (suppressClickRef.current) return
+        onTaskClick(task)
     }
 
     if (!mounted) return null
@@ -105,10 +160,22 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
     return (
         <DndContext
             id={dndContextId}
-            sensors={sensors}
+            sensors={isViewer ? [] : sensors}
             collisionDetection={closestCorners}
-            onDragStart={(event) => setActiveId(event.active.id as number)}
+            onDragStart={(event) => {
+                if (!isViewer) {
+                    suppressClickRef.current = true
+                    setActiveId(event.active.id as number)
+                }
+            }}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={() => {
+                setActiveId(null)
+                setTimeout(() => {
+                    suppressClickRef.current = false
+                }, 100)
+            }}
         >
             <div className="flex h-full gap-6">
                 {COLUMNS.map((col) => (
@@ -117,75 +184,66 @@ export default function KanbanBoard({ projectId, initialTasks }: { projectId: nu
                         col={col}
                         tasks={tasks.filter((t) => (t.Status || 'Pending') === col.id)}
                         projectId={projectId}
-                        onTaskClick={(task) => setEditingTask(task)}
+                        onTaskClick={handleTaskClick}
+                        suppressClickRef={suppressClickRef}
+                        isViewer={isViewer}
                         onTaskCreate={async (title) => {
-                            const formData = new FormData()
-                            formData.append('projectId', projectId.toString())
-                            formData.append('title', title)
-                            formData.append('status', col.id)
+                            if (isViewer) {
+                                toast.error('Viewers cannot create tasks');
+                                return;
+                            }
                             try {
-                                await createTask(formData)
-                                toast.success('Task created')
-                                window.location.reload()
+                                const response = await fetch('/api/task', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        ListID: listId,
+                                        Title: title,
+                                        Status: col.id,
+                                        Priority: 'Medium'
+                                    })
+                                });
+
+                                if (!response.ok) throw new Error('Failed to create task');
+
+                                const newTask = await response.json();
+                                if (newTask) {
+                                    setTasks(prev => [newTask, ...prev]);
+                                    toast.success('Task created');
+                                }
+                                router.refresh();
                             } catch (e) {
-                                toast.error('Failed to create task')
+                                toast.error('Failed to create task');
                             }
                         }}
                     />
                 ))}
             </div>
-            <DragOverlay>
-                {activeId ? <TaskCard task={tasks.find((t) => t.TaskID === activeId)!} /> : null}
+            <DragOverlay dropAnimation={null}>
+                {activeId ? (
+                    <div className="opacity-90 shadow-2xl scale-105 pointer-events-none">
+                        <TaskCard task={tasks.find((t) => t.TaskID === activeId)!} isOverlay />
+                    </div>
+                ) : null}
             </DragOverlay>
-
-            {editingTask && (
-                <TaskModal
-                    task={editingTask}
-                    onClose={() => setEditingTask(null)}
-                    onUpdate={async (id, data) => {
-                        try {
-                            await updateTaskDetails(id, data)
-                            toast.success('Task updated')
-                            window.location.reload()
-                        } catch (e) {
-                            toast.error('Failed to update task')
-                        }
-                    }}
-                    onDelete={async (id) => {
-                        setDeletingTaskId(id)
-                    }}
-                />
-            )}
-
-            <DeleteConfirmModal
-                isOpen={!!deletingTaskId}
-                onClose={() => setDeletingTaskId(null)}
-                onConfirm={async () => {
-                    if (!deletingTaskId) return
-                    setLoading(true)
-                    try {
-                        await deleteTask(deletingTaskId)
-                        setTasks(prev => prev.filter(t => t.TaskID !== deletingTaskId))
-                        toast.success('Task deleted successfully')
-                        setDeletingTaskId(null)
-                        setEditingTask(null)
-                    } catch (e) {
-                        toast.error('Failed to delete task')
-                    } finally {
-                        setLoading(false)
-                    }
-                }}
-                loading={loading}
-                title="Delete Task"
-                message="Are you sure you want to delete this task? This action cannot be undone."
-            />
         </DndContext>
     )
 }
 
-function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any, tasks: Task[], projectId: number, onTaskCreate: (t: string) => void, onTaskClick: (t: Task) => void }) {
+function Column({ col, tasks, projectId, onTaskCreate, onTaskClick, isViewer, suppressClickRef }: {
+    col: any,
+    tasks: Task[],
+    projectId: number,
+    onTaskCreate: (t: string) => void,
+    onTaskClick: (t: Task) => void,
+    isViewer: boolean,
+    suppressClickRef: React.MutableRefObject<boolean>
+}) {
     const [isCreating, setIsCreating] = useState(false)
     const [newTitle, setNewTitle] = useState('')
+    const { setNodeRef } = useDroppable({
+        id: col.id,
+    })
 
     return (
         <div className="flex h-full w-80 flex-col rounded-xl bg-card border border-theme shadow-sm">
@@ -199,7 +257,7 @@ function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div ref={setNodeRef} className="flex-1 overflow-y-auto p-3 space-y-3">
                 <SortableContext items={tasks.map(t => t.TaskID)} strategy={verticalListSortingStrategy}>
                     {tasks.map((task) => (
                         <SortableTask key={task.TaskID} task={task} onClick={() => onTaskClick(task)} />
@@ -241,9 +299,12 @@ function Column({ col, tasks, projectId, onTaskCreate, onTaskClick }: { col: any
                                 }}>Add</button>
                         </div>
                     </div>
-                ) : (
+                ) : !isViewer && (
                     <button
-                        onClick={() => setIsCreating(true)}
+                        onClick={() => {
+                            if (suppressClickRef.current) return
+                            setIsCreating(true)
+                        }}
                         className="w-full py-2 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg border border-dashed border-theme transition-all"
                     >
                         <Plus className="h-4 w-4" />
@@ -266,7 +327,7 @@ function SortableTask({ task, onClick }: { task: Task, onClick?: () => void }) {
     } = useSortable({ id: task.TaskID })
 
     const style = {
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(transform),
         transition,
     }
 
@@ -275,7 +336,7 @@ function SortableTask({ task, onClick }: { task: Task, onClick?: () => void }) {
             <div
                 ref={setNodeRef}
                 style={style}
-                className="h-[100px] rounded-lg bg-muted border border-primary/50 opacity-50"
+                className="h-[100px] w-full rounded-lg bg-muted border border-primary/50 opacity-50"
             />
         )
     }
@@ -287,9 +348,13 @@ function SortableTask({ task, onClick }: { task: Task, onClick?: () => void }) {
     )
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, isOverlay }: { task: Task, isOverlay?: boolean }) {
     return (
-        <div className="group relative bg-card hover:bg-muted/30 border border-theme hover:border-primary/30 rounded-lg p-3 shadow-sm cursor-grab active:cursor-grabbing transition-all hover:shadow-md">
+        <div className={cn(
+            "group relative bg-card hover:bg-muted/30 border border-theme hover:border-primary/30 rounded-lg p-3 shadow-sm",
+            !isOverlay && "cursor-grab active:cursor-grabbing transition-[background-color,border-color,box-shadow] duration-200 hover:shadow-md",
+            isOverlay && "shadow-xl border-primary bg-muted/60"
+        )}>
             <div className="flex justify-between items-start mb-2">
                 <span className={cn(
                     "text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider",
@@ -304,13 +369,24 @@ function TaskCard({ task }: { task: Task }) {
                 </button>
             </div>
             <h4 className="text-sm font-semibold text-foreground mb-1 leading-tight line-clamp-2">{task.Title}</h4>
-            <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+            <div className="flex flex-col gap-2 mt-3">
                 {task.DueDate && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        <span>{new Date(task.DueDate).toLocaleDateString()}</span>
+                        <span>Due: {new Date(task.DueDate).toLocaleDateString()}</span>
                     </div>
                 )}
+                <div className="flex items-center justify-between text-[9px] text-muted-foreground/60">
+                    <div className="flex items-center gap-1">
+                        <Calendar className="h-2.5 w-2.5" />
+                        <span>Created: {task.CreatedAt ? new Date(task.CreatedAt).toLocaleString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : 'N/A'}</span>
+                    </div>
+                </div>
             </div>
         </div>
     )
